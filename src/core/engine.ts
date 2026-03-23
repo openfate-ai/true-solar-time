@@ -1,5 +1,4 @@
 import { SolarCoreInput, SolarCoreResult } from './types';
-import { getStandardMeridian } from './geometry';
 
 export function calculateSolarCore(input: SolarCoreInput): SolarCoreResult {
     const {
@@ -16,7 +15,12 @@ export function calculateSolarCore(input: SolarCoreInput): SolarCoreResult {
 
     // The original logic calculates standardMeridian and applies longitudeCorrection relative to it!
     const standardMeridian = standardOffsetMinutes / 60 * 15;
-    const longDiff = longitude - standardMeridian;
+
+    // Normalize to the shortest signed arc [-180, 180] to prevent
+    // a 360° error (= 1440 min = 1 day) in date-line crossing cases.
+    const rawLongDiff = longitude - standardMeridian;
+    const longDiff = ((rawLongDiff + 540) % 360) - 180;
+
     const longitudeCorrectionMinutes = longDiff * 4;
 
     // In v1, it was:
