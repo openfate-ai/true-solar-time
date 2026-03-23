@@ -1,6 +1,6 @@
 {
   "name": "@openfate/true-solar-time",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "High-precision True Solar Time (真太阳时) calculator featuring Longitude Compensation and Equation of Time, extracted from OpenFate.ai core engine.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
