@@ -19,7 +19,7 @@ Standard time (Clock Time) is a political construct designed for social coordina
 *   **🔭 High-Precision Engine** – Based on *Jean Meeus - Astronomical Algorithms* for sub-minute accuracy.
 *   **🌍 World-Class Timezone Resolution** – Native IANA timezone support. Correctly handles Daylight Saving Time (DST) gaps, overlaps, and historical shifts.
 *   **📐 Dual Engine Design** – Toggle between the rigorous `meeus` engine (accuracy) and the `approx` engine (performance).
-*   **🛡️ Robust & Verified** – Over 20+ regression tests covering international date lines, century epochs, and complex timezone transitions.
+*   **🛡️ Robust & Verified** – Over 100+ regression tests covering international date lines, century epochs, and complex timezone transitions.
 
 ---
 
