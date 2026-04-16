@@ -112,5 +112,26 @@ npm test          # Run the 20+ regression test suite
 npm run build     # Generate distribution files
 ```
 
+### 🌐 GitHub Pages Site
+This repository now includes a static GitHub Pages microsite in [`docs/index.html`](docs/index.html).
+
+To publish it:
+
+1. Push the repository to GitHub on the `main` branch.
+2. In the repository settings, open `Pages`.
+3. Under `Build and deployment`, select `GitHub Actions`.
+4. Push a new commit or manually run the `Deploy GitHub Pages` workflow.
+
+If the workflow fails with `Get Pages site failed`:
+
+- The repository does not have GitHub Pages enabled yet.
+- The fastest fix is to open `Settings` -> `Pages` and set `Source` to `GitHub Actions`, then rerun the workflow.
+- Optional: create a repository secret named `PAGES_TOKEN` with a token that can administer Pages. The workflow will then try to enable Pages automatically on the first run.
+
+Once enabled, the site will publish at:
+
+- `https://openfate-ai.github.io/true-solar-time/` for the current repository name
+- or `https://<owner>.github.io/<repo>/` for forks and renamed repositories
+
 ### 📜 License
 MIT — Engineered by [OpenFate Engineering](https://openfate.ai)

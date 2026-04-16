@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenFate True Solar Time</title>
+    <meta
+      name="description"
+      content="A high-precision TypeScript True Solar Time engine with longitude correction, timezone resolution, and Meeus-based equation-of-time calculations."
+    />
+    <meta name="robots" content="index,follow" />
+    <style>
+      :root {
+        --bg: #f3eee2;
+        --bg-deep: #e4d8bd;
+        --ink: #171714;
+        --muted: #5c584d;
+        --panel: rgba(255, 251, 243, 0.82);
+        --line: rgba(23, 23, 20, 0.12);
+        --accent: #b45b26;
+        --accent-strong: #8b3f16;
+        --accent-soft: #efd7bf;
+        --sky: #d8e7ea;
+        --shadow: 0 20px 60px rgba(58, 43, 24, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+        background:
+          radial-gradient(circle at top left, rgba(180, 91, 38, 0.15), transparent 32%),
+          radial-gradient(circle at right 15%, rgba(117, 168, 179, 0.16), transparent 24%),
+          linear-gradient(180deg, var(--bg) 0%, #eee3cf 58%, #e6d7bf 100%);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(23, 23, 20, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(23, 23, 20, 0.03) 1px, transparent 1px);
+        background-size: 28px 28px;
+        pointer-events: none;
+        opacity: 0.45;
+      }
+
+      a {
+        color: var(--accent-strong);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 0.18em;
+      }
+
+      code,
+      pre {
+        font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+
+      .page {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero {
+        min-height: 100vh;
+        display: grid;
+        align-items: center;
+        padding: 48px 0 64px;
+      }
+
+      .hero-card,
+      .panel {
+        backdrop-filter: blur(14px);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card {
+        border-radius: 28px;
+        overflow: hidden;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.16fr 0.94fr;
+      }
+
+      .hero-copy {
+        padding: 56px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.62);
+        border: 1px solid rgba(23, 23, 20, 0.08);
+        font-size: 0.86rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, var(--sky), var(--accent));
+        box-shadow: 0 0 0 4px rgba(180, 91, 38, 0.08);
+      }
+
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        font-weight: 700;
+        line-height: 0.98;
+      }
+
+      h1 {
+        margin-top: 22px;
+        font-size: clamp(3.2rem, 8vw, 6.2rem);
+        letter-spacing: -0.05em;
+      }
+
+      .lede {
+        margin: 24px 0 0;
+        max-width: 45rem;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 2vw, 1.22rem);
+        line-height: 1.72;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 32px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 52px;
+        padding: 0 20px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 0.98rem;
+        text-decoration: none;
+        transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .button-primary {
+        color: #fff8f1;
+        background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+        box-shadow: 0 14px 30px rgba(139, 63, 22, 0.22);
+      }
+
+      .button-secondary {
+        color: var(--ink);
+        border-color: var(--line);
+        background: rgba(255, 255, 255, 0.58);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 32px;
+      }
+
+      .metric {
+        padding: 18px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.52);
+        border: 1px solid rgba(23, 23, 20, 0.08);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.6rem;
+        letter-spacing: -0.04em;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.5;
+      }
+
+      .hero-side {
+        position: relative;
+        padding: 32px;
+        background:
+          linear-gradient(180deg, rgba(117, 168, 179, 0.16), rgba(180, 91, 38, 0.08)),
+          linear-gradient(145deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.12));
+        border-left: 1px solid var(--line);
+      }
+
+      .sample-card {
+        position: sticky;
+        top: 32px;
+        padding: 26px;
+        border-radius: 24px;
+        background: rgba(23, 23, 20, 0.92);
+        color: #f8f1e4;
+        box-shadow: 0 24px 45px rgba(23, 23, 20, 0.28);
+      }
+
+      .sample-card p,
+      .sample-card li {
+        color: rgba(248, 241, 228, 0.74);
+      }
+
+      .sample-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin: 22px 0;
+      }
+
+      .sample {
+        padding: 14px 12px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(248, 241, 228, 0.16), rgba(248, 241, 228, 0.06));
+        border: 1px solid rgba(248, 241, 228, 0.12);
+      }
+
+      .sample .label {
+        display: block;
+        margin-bottom: 8px;
+        color: rgba(248, 241, 228, 0.58);
+        font-size: 0.73rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .sample .value {
+        display: block;
+        font-size: 1.2rem;
+        line-height: 1.35;
+      }
+
+      .code {
+        margin-top: 18px;
+        padding: 18px;
+        border-radius: 18px;
+        overflow-x: auto;
+        background: rgba(248, 241, 228, 0.06);
+        border: 1px solid rgba(248, 241, 228, 0.08);
+        color: #f8f1e4;
+        font-size: 0.88rem;
+        line-height: 1.65;
+      }
+
+      section {
+        padding: 0 0 28px;
+      }
+
+      .section-header {
+        padding: 0 8px 22px;
+      }
+
+      .section-header h2 {
+        font-size: clamp(2.1rem, 4vw, 3.4rem);
+        letter-spacing: -0.05em;
+      }
+
+      .section-header p {
+        max-width: 48rem;
+        color: var(--muted);
+        font-size: 1.02rem;
+        line-height: 1.75;
+      }
+
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .features {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .workflow {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .panel {
+        padding: 24px;
+        border-radius: 24px;
+      }
+
+      .panel h3 {
+        font-size: 1.4rem;
+        letter-spacing: -0.03em;
+      }
+
+      .panel p {
+        margin: 12px 0 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .step-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        font-size: 0.94rem;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 0.92fr;
+        gap: 18px;
+      }
+
+      .list {
+        margin: 16px 0 0;
+        padding-left: 18px;
+        color: var(--muted);
+        line-height: 1.8;
+      }
+
+      .list li + li {
+        margin-top: 6px;
+      }
+
+      footer {
+        padding: 16px 0 72px;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .foot-card {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      @media (max-width: 980px) {
+        .hero-grid,
+        .split,
+        .features,
+        .workflow {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-copy,
+        .hero-side {
+          padding: 28px;
+        }
+
+        .metrics,
+        .sample-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .sample-card {
+          position: static;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .hero-card,
+        .panel {
+          animation: rise 720ms ease both;
+        }
+
+        .panel:nth-child(2) {
+          animation-delay: 80ms;
+        }
+
+        .panel:nth-child(3) {
+          animation-delay: 140ms;
+        }
+
+        .panel:nth-child(4) {
+          animation-delay: 200ms;
+        }
+
+        @keyframes rise {
+          from {
+            opacity: 0;
+            transform: translateY(24px);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div class="hero-card">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <span class="eyebrow">Astronomical time engine</span>
+              <h1>True Solar Time with the messy real world included.</h1>
+              <p class="lede">
+                <code>@openfate/true-solar-time</code> is the TypeScript engine behind accurate
+                solar-time correction: longitude compensation, timezone resolution, DST edge cases,
+                and Meeus-based equation-of-time math in one package.
+              </p>
+              <div class="actions">
+                <a class="button button-primary" href="https://openfate.ai/bazi">Try OpenFate AI</a>
+                <a class="button button-secondary" href="https://github.com/openfate-ai/true-solar-time">View Repository</a>
+                <a class="button button-secondary" href="https://www.npmjs.com/package/@openfate/true-solar-time">Install from npm</a>
+              </div>
+              <div class="metrics">
+                <div class="metric">
+                  <strong>1 s</strong>
+                  <span>Precision-focused output for true solar time calculations.</span>
+                </div>
+                <div class="metric">
+                  <strong>100+</strong>
+                  <span>Regression checks across date lines, DST shifts, and century boundaries.</span>
+                </div>
+                <div class="metric">
+                  <strong>2</strong>
+                  <span>Engines available: rigorous <code>meeus</code> and lightweight <code>approx</code>.</span>
+                </div>
+              </div>
+            </div>
+            <aside class="hero-side">
+              <div class="sample-card">
+                <h2>Sample output snapshot</h2>
+                <p>
+                  Example shape from a New York input with longitude-aware correction enabled.
+                </p>
+                <div class="sample-grid" aria-label="Example true solar time output">
+                  <div class="sample">
+                    <span class="label">Civil Time</span>
+                    <span class="value">12:00:00</span>
+                  </div>
+                  <div class="sample">
+                    <span class="label">True Solar</span>
+                    <span class="value">11:43:22</span>
+                  </div>
+                  <div class="sample">
+                    <span class="label">Longitude</span>
+                    <span class="value">-74.006</span>
+                  </div>
+                  <div class="sample">
+                    <span class="label">Algorithm</span>
+                    <span class="value">meeus</span>
+                  </div>
+                </div>
+                <div class="code"><pre style="margin: 0;">npm install @openfate/true-solar-time
+
+import { calculateTrueSolarTime } from '@openfate/true-solar-time';
+
+const result = calculateTrueSolarTime({
+  year: 2024,
+  month: 7,
+  day: 1,
+  hour: 12,
+  minute: 0,
+  timeZoneId: 'America/New_York',
+}, {
+  longitude: -74.006,
+  algorithm: 'meeus',
+});</pre></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Why this package exists</h2>
+          <p>
+            Standard clock time is a legal convention. True Solar Time depends on longitude,
+            equation-of-time drift, and timezone behavior that most apps smooth over or ignore.
+            This package exists for teams that need reproducible astronomical correction inside
+            real software.
+          </p>
+        </div>
+        <div class="grid features">
+          <article class="panel">
+            <h3>Meeus-grade correction</h3>
+            <p>
+              Uses astronomical algorithms to account for the equation of time instead of relying
+              on rough fixed-offset shortcuts.
+            </p>
+          </article>
+          <article class="panel">
+            <h3>Timezone edge cases included</h3>
+            <p>
+              Handles IANA timezones, DST gaps and overlaps, and historical offset shifts in a
+              deterministic way.
+            </p>
+          </article>
+          <article class="panel">
+            <h3>Built for downstream engines</h3>
+            <p>
+              Feed accurate corrected time into Bazi, astrology, calendrical, or scheduling logic
+              without rewriting the time layer every time.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-header">
+          <h2>Best fit</h2>
+          <p>
+            This package is strongest when civil time is not enough and the exact astronomical
+            moment matters to your product.
+          </p>
+        </div>
+        <div class="grid workflow">
+          <article class="panel">
+            <span class="step-number">1</span>
+            <h3>Bazi engines</h3>
+            <p>Resolve early and late Zi-hour errors before pillar generation.</p>
+          </article>
+          <article class="panel">
+            <span class="step-number">2</span>
+            <h3>Astrology products</h3>
+            <p>Normalize birth-time inputs with location-aware solar correction.</p>
+          </article>
+          <article class="panel">
+            <span class="step-number">3</span>
+            <h3>Historical datasets</h3>
+            <p>Audit old timestamps with explicit timezone and DST handling.</p>
+          </article>
+          <article class="panel">
+            <span class="step-number">4</span>
+            <h3>Research workflows</h3>
+            <p>Use inspectable output for reproducible astronomical calculations.</p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <div class="split">
+          <article class="panel">
+            <h2 style="font-size: 2.4rem; letter-spacing: -0.04em;">Shipping on GitHub Pages</h2>
+            <p>
+              This microsite is designed to deploy directly from the repository via GitHub Pages,
+              giving the package a public HTML surface beyond the README.
+            </p>
+            <ul class="list">
+              <li>Normal HTML links on this page point to OpenFate product and package surfaces.</li>
+              <li>The site is static, lightweight, and easy to keep aligned with the package docs.</li>
+              <li>You can later replace it with a richer interactive demo without changing the Pages URL.</li>
+            </ul>
+          </article>
+          <article class="panel">
+            <h2 style="font-size: 2.4rem; letter-spacing: -0.04em;">Next moves</h2>
+            <p>
+              The natural follow-up is a browser demo that lets people enter a date, timezone, and
+              longitude and see the corrected solar time immediately on the page.
+            </p>
+            <div class="actions" style="margin-top: 22px;">
+              <a class="button button-primary" href="https://openfate.ai">Visit OpenFate.ai</a>
+              <a class="button button-secondary" href="https://github.com/openfate-ai/true-solar-time/blob/main/README.md">Read the docs</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <footer>
+        <div class="panel foot-card">
+          <span>OpenFate True Solar Time documentation site.</span>
+          <span>
+            Built for
+            <a href="https://github.com/openfate-ai/true-solar-time">openfate-ai/true-solar-time</a>
+            and connected to
+            <a href="https://openfate.ai/bazi">OpenFate AI</a>.
+          </span>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>
